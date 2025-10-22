@@ -1,0 +1,104 @@
+{
+  "name": "@ldesign/auth",
+  "version": "0.1.0",
+  "description": "LDesign 认证授权系统 - JWT、OAuth 2.0、SSO、MFA，完整的身份认证解决方案",
+  "keywords": [
+    "ldesign",
+    "auth",
+    "authentication",
+    "authorization",
+    "jwt",
+    "oauth",
+    "sso",
+    "mfa",
+    "typescript"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "homepage": "https://github.com/ldesign/ldesign/tree/main/packages/auth#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ldesign/ldesign.git",
+    "directory": "packages/auth"
+  },
+  "bugs": {
+    "url": "https://github.com/ldesign/ldesign/issues"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs"
+    },
+    "./jwt": {
+      "types": "./es/jwt/index.d.ts",
+      "import": "./es/jwt/index.js",
+      "require": "./lib/jwt/index.cjs"
+    },
+    "./oauth": {
+      "types": "./es/oauth/index.d.ts",
+      "import": "./es/oauth/index.js",
+      "require": "./lib/oauth/index.cjs"
+    },
+    "./mfa": {
+      "types": "./es/mfa/index.d.ts",
+      "import": "./es/mfa/index.js",
+      "require": "./lib/mfa/index.cjs"
+    },
+    "./session": {
+      "types": "./es/session/index.d.ts",
+      "import": "./es/session/index.js",
+      "require": "./lib/session/index.cjs"
+    },
+    "./types": {
+      "types": "./es/types/index.d.ts",
+      "import": "./es/types/index.js",
+      "require": "./lib/types/index.cjs"
+    }
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "package.json",
+    "es",
+    "lib"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "dev": "ldesign-builder watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --fix",
+    "lint:check": "eslint .",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rimraf es lib coverage",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "dependencies": {
+    "@ldesign/cache": "workspace:*",
+    "@ldesign/crypto": "workspace:*",
+    "@ldesign/http": "workspace:*",
+    "@ldesign/router": "workspace:*",
+    "@ldesign/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^6.0.0",
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "@vitest/ui": "^2.0.0",
+    "eslint": "^9.18.0",
+    "jsdom": "^24.0.0",
+    "rimraf": "^5.0.0",
+    "typescript": "^5.7.3",
+    "vitest": "^2.0.0"
+  }
+}
+
