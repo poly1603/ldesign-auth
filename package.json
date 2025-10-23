@@ -32,102 +32,194 @@
       "import": "./es/index.js",
       "require": "./lib/index.cjs"
     },
-    "./jwt": {
-      "types": "./es/jwt/index.d.ts",
-      "import": "./es/jwt/index.js",
-      "require": "./lib/jwt/index.cjs"
-    },
-    "./token": {
-      "types": "./es/token/index.d.ts",
-      "import": "./es/token/index.js",
-      "require": "./lib/token/index.cjs"
-    },
-    "./session": {
-      "types": "./es/session/index.d.ts",
-      "import": "./es/session/index.js",
-      "require": "./lib/session/index.cjs"
-    },
-    "./events": {
-      "types": "./es/events/index.d.ts",
-      "import": "./es/events/index.js",
-      "require": "./lib/events/index.cjs"
-    },
-    "./errors": {
-      "types": "./es/errors/index.d.ts",
-      "import": "./es/errors/index.js",
-      "require": "./lib/errors/index.cjs"
-    },
-    "./oauth": {
-      "types": "./es/oauth/index.d.ts",
-      "import": "./es/oauth/index.js",
-      "require": "./lib/oauth/index.cjs"
-    },
-    "./oidc": {
-      "types": "./es/oidc/index.d.ts",
-      "import": "./es/oidc/index.js",
-      "require": "./lib/oidc/index.cjs"
-    },
-    "./mfa": {
-      "types": "./es/mfa/index.d.ts",
-      "import": "./es/mfa/index.js",
-      "require": "./lib/mfa/index.cjs"
-    },
-    "./password": {
-      "types": "./es/password/index.d.ts",
-      "import": "./es/password/index.js",
-      "require": "./lib/password/index.cjs"
-    },
-    "./router": {
-      "types": "./es/router/index.d.ts",
-      "import": "./es/router/index.js",
-      "require": "./lib/router/index.cjs"
-    },
-    "./vue": {
-      "types": "./es/vue/index.d.ts",
-      "import": "./es/vue/index.js",
-      "require": "./lib/vue/index.cjs"
-    },
     "./audit": {
       "types": "./es/audit/index.d.ts",
       "import": "./es/audit/index.js",
       "require": "./lib/audit/index.cjs"
+    },
+    "./audit/*": {
+      "types": "./es/audit/*.d.ts",
+      "import": "./es/audit/*.js",
+      "require": "./lib/audit/*.cjs"
+    },
+    "./core/*": {
+      "types": "./es/core/*.d.ts",
+      "import": "./es/core/*.js",
+      "require": "./lib/core/*.cjs"
     },
     "./device": {
       "types": "./es/device/index.d.ts",
       "import": "./es/device/index.js",
       "require": "./lib/device/index.cjs"
     },
+    "./device/*": {
+      "types": "./es/device/*.d.ts",
+      "import": "./es/device/*.js",
+      "require": "./lib/device/*.cjs"
+    },
+    "./errors": {
+      "types": "./es/errors/index.d.ts",
+      "import": "./es/errors/index.js",
+      "require": "./lib/errors/index.cjs"
+    },
+    "./errors/*": {
+      "types": "./es/errors/*.d.ts",
+      "import": "./es/errors/*.js",
+      "require": "./lib/errors/*.cjs"
+    },
+    "./events": {
+      "types": "./es/events/index.d.ts",
+      "import": "./es/events/index.js",
+      "require": "./lib/events/index.cjs"
+    },
+    "./events/*": {
+      "types": "./es/events/*.d.ts",
+      "import": "./es/events/*.js",
+      "require": "./lib/events/*.cjs"
+    },
+    "./jwt": {
+      "types": "./es/jwt/index.d.ts",
+      "import": "./es/jwt/index.js",
+      "require": "./lib/jwt/index.cjs"
+    },
+    "./jwt/*": {
+      "types": "./es/jwt/*.d.ts",
+      "import": "./es/jwt/*.js",
+      "require": "./lib/jwt/*.cjs"
+    },
+    "./mfa": {
+      "types": "./es/mfa/index.d.ts",
+      "import": "./es/mfa/index.js",
+      "require": "./lib/mfa/index.cjs"
+    },
+    "./mfa/*": {
+      "types": "./es/mfa/*.d.ts",
+      "import": "./es/mfa/*.js",
+      "require": "./lib/mfa/*.cjs"
+    },
+    "./oauth": {
+      "types": "./es/oauth/index.d.ts",
+      "import": "./es/oauth/index.js",
+      "require": "./lib/oauth/index.cjs"
+    },
+    "./oauth/*": {
+      "types": "./es/oauth/*.d.ts",
+      "import": "./es/oauth/*.js",
+      "require": "./lib/oauth/*.cjs"
+    },
+    "./oidc": {
+      "types": "./es/oidc/index.d.ts",
+      "import": "./es/oidc/index.js",
+      "require": "./lib/oidc/index.cjs"
+    },
+    "./oidc/*": {
+      "types": "./es/oidc/*.d.ts",
+      "import": "./es/oidc/*.js",
+      "require": "./lib/oidc/*.cjs"
+    },
+    "./password": {
+      "types": "./es/password/index.d.ts",
+      "import": "./es/password/index.js",
+      "require": "./lib/password/index.cjs"
+    },
+    "./password/*": {
+      "types": "./es/password/*.d.ts",
+      "import": "./es/password/*.js",
+      "require": "./lib/password/*.cjs"
+    },
+    "./router": {
+      "types": "./es/router/index.d.ts",
+      "import": "./es/router/index.js",
+      "require": "./lib/router/index.cjs"
+    },
+    "./router/*": {
+      "types": "./es/router/*.d.ts",
+      "import": "./es/router/*.js",
+      "require": "./lib/router/*.cjs"
+    },
     "./security": {
       "types": "./es/security/index.d.ts",
       "import": "./es/security/index.js",
       "require": "./lib/security/index.cjs"
+    },
+    "./security/*": {
+      "types": "./es/security/*.d.ts",
+      "import": "./es/security/*.js",
+      "require": "./lib/security/*.cjs"
+    },
+    "./session": {
+      "types": "./es/session/index.d.ts",
+      "import": "./es/session/index.js",
+      "require": "./lib/session/index.cjs"
+    },
+    "./session/*": {
+      "types": "./es/session/*.d.ts",
+      "import": "./es/session/*.js",
+      "require": "./lib/session/*.cjs"
     },
     "./sso": {
       "types": "./es/sso/index.d.ts",
       "import": "./es/sso/index.js",
       "require": "./lib/sso/index.cjs"
     },
-    "./webauthn": {
-      "types": "./es/webauthn/index.d.ts",
-      "import": "./es/webauthn/index.js",
-      "require": "./lib/webauthn/index.cjs"
+    "./sso/*": {
+      "types": "./es/sso/*.d.ts",
+      "import": "./es/sso/*.js",
+      "require": "./lib/sso/*.cjs"
+    },
+    "./token": {
+      "types": "./es/token/index.d.ts",
+      "import": "./es/token/index.js",
+      "require": "./lib/token/index.cjs"
+    },
+    "./token/*": {
+      "types": "./es/token/*.d.ts",
+      "import": "./es/token/*.js",
+      "require": "./lib/token/*.cjs"
     },
     "./types": {
       "types": "./es/types/index.d.ts",
       "import": "./es/types/index.js",
       "require": "./lib/types/index.cjs"
+    },
+    "./types/*": {
+      "types": "./es/types/*.d.ts",
+      "import": "./es/types/*.js",
+      "require": "./lib/types/*.cjs"
+    },
+    "./vue": {
+      "types": "./es/vue/index.d.ts",
+      "import": "./es/vue/index.js",
+      "require": "./lib/vue/index.cjs"
+    },
+    "./vue/*": {
+      "types": "./es/vue/*.d.ts",
+      "import": "./es/vue/*.js",
+      "require": "./lib/vue/*.cjs"
+    },
+    "./webauthn": {
+      "types": "./es/webauthn/index.d.ts",
+      "import": "./es/webauthn/index.js",
+      "require": "./lib/webauthn/index.cjs"
+    },
+    "./webauthn/*": {
+      "types": "./es/webauthn/*.d.ts",
+      "import": "./es/webauthn/*.js",
+      "require": "./lib/webauthn/*.cjs"
     }
   },
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
-    "CHANGELOG.md",
     "package.json",
     "es",
-    "lib"
+    "lib",
+    "dist"
   ],
   "scripts": {
     "build": "ldesign-builder build -f esm,cjs,dts",
@@ -152,11 +244,6 @@
   "peerDependencies": {
     "vue": "^3.0.0"
   },
-  "peerDependenciesMeta": {
-    "vue": {
-      "optional": true
-    }
-  },
   "devDependencies": {
     "@antfu/eslint-config": "^6.0.0",
     "@ldesign/builder": "workspace:*",
@@ -167,7 +254,10 @@
     "rimraf": "^5.0.0",
     "typescript": "^5.7.3",
     "vitest": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
   }
 }
-
-
