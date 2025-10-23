@@ -18,6 +18,21 @@ export interface User {
   email?: string
 
   /**
+   * 手机号
+   */
+  phone?: string
+
+  /**
+   * 昵称
+   */
+  nickname?: string
+
+  /**
+   * 头像 URL
+   */
+  avatar?: string
+
+  /**
    * 角色
    */
   roles?: string[]
@@ -57,6 +72,11 @@ export interface TokenInfo {
    * @default 'Bearer'
    */
   tokenType?: string
+
+  /**
+   * Scope
+   */
+  scope?: string
 }
 
 /**
@@ -98,6 +118,51 @@ export interface AuthConfig {
    * @default '/'
    */
   redirectRoute?: string
+
+  /**
+   * API 基础 URL
+   */
+  baseURL?: string
+
+  /**
+   * API 端点配置
+   */
+  endpoints?: AuthEndpoints
+}
+
+/**
+ * API 端点配置
+ */
+export interface AuthEndpoints {
+  /**
+   * 登录端点
+   * @default '/api/auth/login'
+   */
+  login?: string
+
+  /**
+   * 登出端点
+   * @default '/api/auth/logout'
+   */
+  logout?: string
+
+  /**
+   * 刷新 Token 端点
+   * @default '/api/auth/refresh'
+   */
+  refresh?: string
+
+  /**
+   * 获取用户信息端点
+   * @default '/api/auth/user'
+   */
+  userInfo?: string
+
+  /**
+   * 注册端点
+   * @default '/api/auth/register'
+   */
+  register?: string
 }
 
 /**
@@ -123,6 +188,26 @@ export interface LoginCredentials {
    * MFA 验证码
    */
   mfaCode?: string
+
+  /**
+   * 其他自定义字段
+   */
+  [key: string]: any
+}
+
+/**
+ * 登录响应
+ */
+export interface LoginResponse {
+  /**
+   * 用户信息
+   */
+  user: User
+
+  /**
+   * Token 信息
+   */
+  token: TokenInfo
 }
 
 /**
@@ -135,6 +220,11 @@ export interface OAuthConfig {
   clientId: string
 
   /**
+   * Client Secret (仅服务端使用)
+   */
+  clientSecret?: string
+
+  /**
    * 授权端点
    */
   authorizationEndpoint: string
@@ -143,6 +233,11 @@ export interface OAuthConfig {
    * Token 端点
    */
   tokenEndpoint: string
+
+  /**
+   * 用户信息端点
+   */
+  userInfoEndpoint?: string
 
   /**
    * 重定向 URI
@@ -159,6 +254,12 @@ export interface OAuthConfig {
    * @default 'code'
    */
   responseType?: 'code' | 'token'
+
+  /**
+   * 是否使用 PKCE
+   * @default false
+   */
+  usePKCE?: boolean
 }
 
 /**
@@ -191,3 +292,40 @@ export interface AuthState {
   error: Error | null
 }
 
+/**
+ * 认证事件类型
+ */
+export type AuthEventType =
+  | 'userLoaded'
+  | 'userUnloaded'
+  | 'accessTokenExpiring'
+  | 'accessTokenExpired'
+  | 'refreshTokenExpired'
+  | 'sessionTimeout'
+  | 'error'
+  | 'loginSuccess'
+  | 'loginFailed'
+  | 'logoutSuccess'
+  | 'tokenRefreshed'
+
+/**
+ * 认证事件处理器
+ */
+export type AuthEventHandler<T = any> = (data: T) => void | Promise<void>
+
+/**
+ * 认证事件映射
+ */
+export interface AuthEventMap {
+  userLoaded: User
+  userUnloaded: void
+  accessTokenExpiring: TokenInfo
+  accessTokenExpired: void
+  refreshTokenExpired: void
+  sessionTimeout: void
+  error: Error
+  loginSuccess: LoginResponse
+  loginFailed: Error
+  logoutSuccess: void
+  tokenRefreshed: TokenInfo
+}

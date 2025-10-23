@@ -37,20 +37,80 @@
       "import": "./es/jwt/index.js",
       "require": "./lib/jwt/index.cjs"
     },
+    "./token": {
+      "types": "./es/token/index.d.ts",
+      "import": "./es/token/index.js",
+      "require": "./lib/token/index.cjs"
+    },
+    "./session": {
+      "types": "./es/session/index.d.ts",
+      "import": "./es/session/index.js",
+      "require": "./lib/session/index.cjs"
+    },
+    "./events": {
+      "types": "./es/events/index.d.ts",
+      "import": "./es/events/index.js",
+      "require": "./lib/events/index.cjs"
+    },
+    "./errors": {
+      "types": "./es/errors/index.d.ts",
+      "import": "./es/errors/index.js",
+      "require": "./lib/errors/index.cjs"
+    },
     "./oauth": {
       "types": "./es/oauth/index.d.ts",
       "import": "./es/oauth/index.js",
       "require": "./lib/oauth/index.cjs"
+    },
+    "./oidc": {
+      "types": "./es/oidc/index.d.ts",
+      "import": "./es/oidc/index.js",
+      "require": "./lib/oidc/index.cjs"
     },
     "./mfa": {
       "types": "./es/mfa/index.d.ts",
       "import": "./es/mfa/index.js",
       "require": "./lib/mfa/index.cjs"
     },
-    "./session": {
-      "types": "./es/session/index.d.ts",
-      "import": "./es/session/index.js",
-      "require": "./lib/session/index.cjs"
+    "./password": {
+      "types": "./es/password/index.d.ts",
+      "import": "./es/password/index.js",
+      "require": "./lib/password/index.cjs"
+    },
+    "./router": {
+      "types": "./es/router/index.d.ts",
+      "import": "./es/router/index.js",
+      "require": "./lib/router/index.cjs"
+    },
+    "./vue": {
+      "types": "./es/vue/index.d.ts",
+      "import": "./es/vue/index.js",
+      "require": "./lib/vue/index.cjs"
+    },
+    "./audit": {
+      "types": "./es/audit/index.d.ts",
+      "import": "./es/audit/index.js",
+      "require": "./lib/audit/index.cjs"
+    },
+    "./device": {
+      "types": "./es/device/index.d.ts",
+      "import": "./es/device/index.js",
+      "require": "./lib/device/index.cjs"
+    },
+    "./security": {
+      "types": "./es/security/index.d.ts",
+      "import": "./es/security/index.js",
+      "require": "./lib/security/index.cjs"
+    },
+    "./sso": {
+      "types": "./es/sso/index.d.ts",
+      "import": "./es/sso/index.js",
+      "require": "./lib/sso/index.cjs"
+    },
+    "./webauthn": {
+      "types": "./es/webauthn/index.d.ts",
+      "import": "./es/webauthn/index.js",
+      "require": "./lib/webauthn/index.cjs"
     },
     "./types": {
       "types": "./es/types/index.d.ts",
@@ -89,6 +149,14 @@
     "@ldesign/router": "workspace:*",
     "@ldesign/shared": "workspace:*"
   },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@antfu/eslint-config": "^6.0.0",
     "@ldesign/builder": "workspace:*",
@@ -101,4 +169,5 @@
     "vitest": "^2.0.0"
   }
 }
+
 
