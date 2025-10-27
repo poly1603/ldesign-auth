@@ -20,6 +20,9 @@ import { SessionManager } from '../session/SessionManager'
 import { AuthEventEmitter } from '../events/EventEmitter'
 import { JWTParser } from '../jwt/parser'
 import { AuthError, AuthErrorCode, TokenError } from '../errors'
+import { AUTH_DEFAULTS, API_ENDPOINTS, ROUTES } from '../constants'
+import { DisposableManager } from '../utils/DisposableManager'
+import { AuthMetricsCollector, PerformanceTimer } from '../monitoring/AuthMetrics'
 
 /**
  * 认证管理器类
@@ -42,6 +45,9 @@ export class AuthManager {
   private cacheManager?: CacheManager
 
   private listeners: Set<(state: AuthState) => void> = new Set()
+  private disposables: DisposableManager = new DisposableManager()
+  private metrics: AuthMetricsCollector = new AuthMetricsCollector()
+  private notificationTimer?: NodeJS.Timeout
 
   constructor(
     config: AuthConfig = {},
@@ -50,19 +56,19 @@ export class AuthManager {
   ) {
     // 合并配置
     this.config = {
-      tokenKey: config.tokenKey || 'auth-token',
-      userKey: config.userKey || 'auth-user',
-      refreshThreshold: config.refreshThreshold || 300,
+      tokenKey: config.tokenKey || AUTH_DEFAULTS.TOKEN_KEY,
+      userKey: config.userKey || AUTH_DEFAULTS.USER_KEY,
+      refreshThreshold: config.refreshThreshold || AUTH_DEFAULTS.REFRESH_THRESHOLD,
       autoRefresh: config.autoRefresh !== undefined ? config.autoRefresh : true,
-      loginRoute: config.loginRoute || '/login',
-      redirectRoute: config.redirectRoute || '/',
+      loginRoute: config.loginRoute || ROUTES.LOGIN,
+      redirectRoute: config.redirectRoute || ROUTES.REDIRECT,
       baseURL: config.baseURL || '',
       endpoints: {
-        login: config.endpoints?.login || '/api/auth/login',
-        logout: config.endpoints?.logout || '/api/auth/logout',
-        refresh: config.endpoints?.refresh || '/api/auth/refresh',
-        userInfo: config.endpoints?.userInfo || '/api/auth/user',
-        register: config.endpoints?.register || '/api/auth/register',
+        login: config.endpoints?.login || API_ENDPOINTS.LOGIN,
+        logout: config.endpoints?.logout || API_ENDPOINTS.LOGOUT,
+        refresh: config.endpoints?.refresh || API_ENDPOINTS.REFRESH,
+        userInfo: config.endpoints?.userInfo || API_ENDPOINTS.USER_INFO,
+        register: config.endpoints?.register || API_ENDPOINTS.REGISTER,
       },
     }
 
@@ -82,7 +88,7 @@ export class AuthManager {
     )
 
     this.sessionManager = new SessionManager({
-      timeout: 30 * 60 * 1000, // 30分钟
+      timeout: AUTH_DEFAULTS.SESSION_TIMEOUT,
       monitorActivity: true,
       enableTabSync: true,
     })
@@ -117,6 +123,7 @@ export class AuthManager {
     // 监听 Session 超时
     this.sessionManager.onTimeout(() => {
       this.events.emit('sessionTimeout', undefined)
+      this.metrics.recordSessionTimeout()
       this.logout()
     })
   }
@@ -137,6 +144,9 @@ export class AuthManager {
    * ```
    */
   async login(credentials: LoginCredentials): Promise<void> {
+    // 开始性能计时
+    const timer = this.metrics.startTimer()
+
     this.updateState({ loading: true, error: null })
 
     try {
@@ -161,6 +171,9 @@ export class AuthManager {
       this.events.emit('loginSuccess', response)
 
       this.updateState({ loading: false })
+
+      // 记录登录成功指标
+      this.metrics.recordLogin(true, timer.elapsed())
     }
     catch (error) {
       const authError = error instanceof AuthError
@@ -174,6 +187,9 @@ export class AuthManager {
 
       // 触发登录失败事件
       this.events.emit('loginFailed', authError)
+
+      // 记录登录失败指标
+      this.metrics.recordLogin(false, timer.elapsed())
 
       throw authError
     }
@@ -204,8 +220,8 @@ export class AuthManager {
       }
     }
     finally {
-      // 清除 Token
-      this.tokenManager.clear()
+      // 清除 Token（并加入黑名单）
+      await this.tokenManager.clear(undefined, true)
 
       // 清除缓存的用户信息
       if (this.cacheManager) {
@@ -228,6 +244,9 @@ export class AuthManager {
       // 触发用户退出事件
       this.events.emit('userUnloaded', undefined)
       this.events.emit('logoutSuccess', undefined)
+
+      // 记录登出指标
+      this.metrics.recordLogout()
     }
   }
 
@@ -279,6 +298,8 @@ export class AuthManager {
    * ```
    */
   async refreshToken(): Promise<void> {
+    const timer = this.metrics.startTimer()
+
     try {
       const newToken = await this.tokenManager.refresh()
 
@@ -287,8 +308,14 @@ export class AuthManager {
 
       // 触发刷新事件
       this.events.emit('tokenRefreshed', newToken)
+
+      // 记录刷新成功指标
+      this.metrics.recordTokenRefresh(true, timer.elapsed())
     }
     catch (error) {
+      // 记录刷新失败指标
+      this.metrics.recordTokenRefresh(false, timer.elapsed())
+
       // 刷新失败，清除认证
       await this.logout()
       throw error
@@ -493,9 +520,9 @@ export class AuthManager {
       }
 
       // 验证 Token
-      if (!this.tokenManager.validate(token)) {
+      if (!(await this.tokenManager.validate(token))) {
         // Token 无效，清除
-        this.tokenManager.clear()
+        await this.tokenManager.clear()
         return
       }
 
@@ -514,7 +541,7 @@ export class AuthManager {
         }
         catch (error) {
           // 获取用户信息失败，清除认证
-          this.tokenManager.clear()
+          await this.tokenManager.clear()
           return
         }
       }
@@ -537,19 +564,44 @@ export class AuthManager {
     catch (error) {
       console.error('[AuthManager] Restore state error:', error)
       // 恢复失败，清除状态
-      this.tokenManager.clear()
+      await this.tokenManager.clear()
     }
   }
 
   /**
-   * 更新状态
+   * 更新状态（批处理优化）
    *
    * @param partial - 部分状态
    * @private
    */
   private updateState(partial: Partial<AuthState>): void {
     this.state = { ...this.state, ...partial }
-    this.notifyListeners()
+    this.scheduleNotification()
+  }
+
+  /**
+   * 调度状态通知（批处理）
+   * 
+   * 使用微任务批处理多个状态更新，避免频繁触发监听器
+   * @private
+   */
+  private scheduleNotification(): void {
+    if (this.notificationTimer) {
+      return
+    }
+
+    this.notificationTimer = setTimeout(() => {
+      this.notifyListeners()
+      this.notificationTimer = undefined
+    }, AUTH_DEFAULTS.STATE_UPDATE_BATCH_DELAY)
+
+    // 添加到资源管理器
+    this.disposables.add(() => {
+      if (this.notificationTimer) {
+        clearTimeout(this.notificationTimer)
+        this.notificationTimer = undefined
+      }
+    })
   }
 
   /**
@@ -574,10 +626,38 @@ export class AuthManager {
    * 清理所有资源
    */
   destroy(): void {
+    // 使用 DisposableManager 统一清理
+    this.disposables.dispose()
+
     this.tokenManager.destroy()
     this.sessionManager.destroy()
     this.events.removeAllListeners()
     this.listeners.clear()
+  }
+
+  /**
+   * 获取性能指标
+   *
+   * @returns 性能指标数据
+   *
+   * @example
+   * ```typescript
+   * const auth = createAuthManager()
+   * const metrics = auth.getMetrics()
+   * console.log('登录成功率:', metrics.loginSuccesses / metrics.loginAttempts)
+   * ```
+   */
+  getMetrics() {
+    return this.metrics.getMetrics()
+  }
+
+  /**
+   * 获取指标收集器
+   *
+   * @returns 指标收集器实例
+   */
+  getMetricsCollector(): AuthMetricsCollector {
+    return this.metrics
   }
 }
 

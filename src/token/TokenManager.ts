@@ -11,6 +11,11 @@ import type { ITokenStorage, StorageType, TokenConfig, TokenExpiredCallback, Tok
 import { JWTParser } from '../jwt/parser'
 import { TokenError, AuthErrorCode } from '../errors'
 import { StorageAdapterFactory } from './storage'
+import { AUTH_DEFAULTS } from '../constants'
+import { DisposableManager } from '../utils/DisposableManager'
+import { retryWithBackoff, isRetryableNetworkError } from '../utils/retry'
+import type { ITokenBlacklist } from './TokenBlacklist'
+import { createTokenBlacklist } from './TokenBlacklist'
 
 /**
  * Token 管理器类
@@ -25,6 +30,8 @@ export class TokenManager {
   private refreshPromise?: Promise<TokenInfo>
   private refreshCallbacks: Set<TokenRefreshCallback> = new Set()
   private expiredCallbacks: Set<TokenExpiredCallback> = new Set()
+  private disposables: DisposableManager = new DisposableManager()
+  private blacklist: ITokenBlacklist
 
   constructor(
     config: TokenConfig = {},
@@ -32,20 +39,23 @@ export class TokenManager {
     cacheManager?: CacheManager,
   ) {
     this.config = {
-      tokenKey: config.tokenKey || 'auth-token',
-      refreshTokenKey: config.refreshTokenKey || 'auth-refresh-token',
+      tokenKey: config.tokenKey || AUTH_DEFAULTS.TOKEN_KEY,
+      refreshTokenKey: config.refreshTokenKey || AUTH_DEFAULTS.REFRESH_TOKEN_KEY,
       defaultStorage: config.defaultStorage || 'localStorage',
       refreshEndpoint: config.refreshEndpoint || '/api/auth/refresh',
-      refreshThreshold: config.refreshThreshold || 300,
+      refreshThreshold: config.refreshThreshold || AUTH_DEFAULTS.REFRESH_THRESHOLD,
       autoRefresh: config.autoRefresh !== undefined ? config.autoRefresh : true,
-      maxRetries: config.maxRetries || 3,
-      retryDelay: config.retryDelay || 1000,
+      maxRetries: config.maxRetries || AUTH_DEFAULTS.MAX_RETRIES,
+      retryDelay: config.retryDelay || AUTH_DEFAULTS.RETRY_DELAY,
     }
 
     this.parser = new JWTParser()
     this.storage = StorageAdapterFactory.getAdapter(this.config.defaultStorage)
     this.httpClient = httpClient
     this.cacheManager = cacheManager
+
+    // 初始化 Token 黑名单
+    this.blacklist = createTokenBlacklist('memory')
   }
 
   /**
@@ -190,12 +200,17 @@ export class TokenManager {
    * }
    * ```
    */
-  validate(token: string | TokenInfo): boolean {
+  async validate(token: string | TokenInfo): Promise<boolean> {
     try {
       const tokenString = typeof token === 'string' ? token : token.accessToken
 
       // 检查格式
       if (!tokenString || typeof tokenString !== 'string') {
+        return false
+      }
+
+      // 检查黑名单
+      if (await this.blacklist.has(tokenString)) {
         return false
       }
 
@@ -290,70 +305,87 @@ export class TokenManager {
       throw TokenError.fromCode(AuthErrorCode.INVALID_REFRESH_TOKEN)
     }
 
-    // 执行刷新请求（带重试）
-    let lastError: Error | undefined
-    for (let i = 0; i < this.config.maxRetries; i++) {
-      try {
-        const response = await this.httpClient.post<{ token: TokenInfo }>(
-          this.config.refreshEndpoint,
-          { refreshToken: token },
-        )
+    // 使用指数退避策略重试
+    try {
+      const response = await retryWithBackoff(
+        async () => {
+          return await this.httpClient!.post<{ token: TokenInfo }>(
+            this.config.refreshEndpoint,
+            { refreshToken: token },
+          )
+        },
+        {
+          maxRetries: this.config.maxRetries,
+          initialDelay: this.config.retryDelay,
+          shouldRetry: isRetryableNetworkError,
+          onRetry: (error, attempt, delay) => {
+            console.debug(`[TokenManager] Retrying refresh (${attempt}/${this.config.maxRetries}) after ${delay}ms`, error.message)
+          },
+        },
+      )
 
-        const newToken = response.token
+      const newToken = response.token
 
-        // 存储新 Token
-        this.store(newToken)
+      // 存储新 Token
+      this.store(newToken)
 
-        // 触发刷新回调
-        this.refreshCallbacks.forEach((callback) => {
-          try {
-            callback(newToken)
-          }
-          catch (error) {
-            console.error('[TokenManager] Refresh callback error:', error)
-          }
-        })
-
-        return newToken
-      }
-      catch (error) {
-        lastError = error as Error
-
-        // 如果不是最后一次重试，等待后重试
-        if (i < this.config.maxRetries - 1) {
-          await new Promise(resolve => setTimeout(resolve, this.config.retryDelay))
+      // 触发刷新回调
+      this.refreshCallbacks.forEach((callback) => {
+        try {
+          callback(newToken)
         }
-      }
-    }
+        catch (error) {
+          console.error('[TokenManager] Refresh callback error:', error)
+        }
+      })
 
-    // 所有重试都失败
-    throw TokenError.refreshFailed(lastError)
+      return newToken
+    }
+    catch (error) {
+      throw TokenError.refreshFailed(error as Error)
+    }
   }
 
   /**
    * 清除 Token
    *
    * @param storageType - 存储类型（可选）
+   * @param addToBlacklist - 是否添加到黑名单（默认 true）
    *
    * @example
    * ```typescript
    * const tokenManager = new TokenManager()
-   * tokenManager.clear()
+   * await tokenManager.clear() // 清除并加入黑名单
    * ```
    */
-  clear(storageType?: StorageType): void {
+  async clear(storageType?: StorageType, addToBlacklist = true): Promise<void> {
     const storage = storageType
       ? StorageAdapterFactory.getAdapter(storageType)
       : this.storage
 
     try {
+      // 如果需要，将当前 Token 加入黑名单
+      if (addToBlacklist) {
+        const accessToken = storage.load(this.config.tokenKey)
+        if (accessToken) {
+          try {
+            const decoded = this.parser.decode(accessToken)
+            const expiresAt = decoded.payload.exp ? decoded.payload.exp * 1000 : Date.now() + 3600000
+            await this.blacklist.add(accessToken, expiresAt)
+          }
+          catch (error) {
+            console.warn('[TokenManager] Failed to add token to blacklist:', error)
+          }
+        }
+      }
+
       // 清除存储
       storage.remove(this.config.tokenKey)
       storage.remove(this.config.refreshTokenKey)
 
       // 清除缓存
       if (this.cacheManager) {
-        this.cacheManager.remove(this.config.tokenKey).catch((error) => {
+        await this.cacheManager.remove(this.config.tokenKey).catch((error) => {
           console.warn('[TokenManager] Cache clear failed:', error)
         })
       }
@@ -371,7 +403,7 @@ export class TokenManager {
   }
 
   /**
-   * 启动自动刷新
+   * 启动自动刷新（使用预刷新机制）
    *
    * @param expiresIn - 过期时间（秒）
    * @private
@@ -384,6 +416,9 @@ export class TokenManager {
       (expiresIn - this.config.refreshThreshold) * 1000,
       0,
     )
+
+    // 使用预刷新机制：提前 20% 的时间开始刷新
+    const preemptiveRefreshIn = refreshIn * AUTH_DEFAULTS.PREEMPTIVE_REFRESH_RATIO
 
     this.refreshTimer = setTimeout(() => {
       this.refresh().catch((error) => {
@@ -399,7 +434,12 @@ export class TokenManager {
           }
         })
       })
-    }, refreshIn)
+    }, preemptiveRefreshIn)
+
+    // 添加到资源管理器
+    this.disposables.add(() => {
+      this.stopAutoRefresh()
+    })
   }
 
   /**
@@ -493,10 +533,54 @@ export class TokenManager {
    * 清理所有资源和定时器
    */
   destroy(): void {
+    // 使用 DisposableManager 统一清理
+    this.disposables.dispose()
+
     this.stopAutoRefresh()
     this.refreshCallbacks.clear()
     this.expiredCallbacks.clear()
     this.refreshPromise = undefined
+  }
+
+  /**
+   * 获取 Token 黑名单
+   *
+   * @returns Token 黑名单实例
+   */
+  getBlacklist(): ITokenBlacklist {
+    return this.blacklist
+  }
+
+  /**
+   * 检查 Token 是否在黑名单中
+   *
+   * @param token - Token 字符串
+   * @returns 是否在黑名单中
+   */
+  async isBlacklisted(token: string): Promise<boolean> {
+    return this.blacklist.has(token)
+  }
+
+  /**
+   * 将 Token 添加到黑名单
+   *
+   * @param token - Token 字符串
+   * @param expiresAt - 过期时间（可选，默认从 Token 中解析）
+   */
+  async addToBlacklist(token: string, expiresAt?: number): Promise<void> {
+    let expiry = expiresAt
+
+    if (!expiry) {
+      try {
+        const decoded = this.parser.decode(token)
+        expiry = decoded.payload.exp ? decoded.payload.exp * 1000 : Date.now() + 3600000
+      }
+      catch {
+        expiry = Date.now() + 3600000 // 默认 1 小时
+      }
+    }
+
+    await this.blacklist.add(token, expiry)
   }
 }
 

@@ -11,6 +11,9 @@ import type {
   SessionSyncMessage,
   SessionTimeoutCallback,
 } from './types'
+import { AUTH_DEFAULTS } from '../constants'
+import { DisposableManager } from '../utils/DisposableManager'
+import { debounce } from '../utils/debounce'
 
 /**
  * Session 管理器类
@@ -27,18 +30,26 @@ export class SessionManager {
   private activityHandlers: Map<string, EventListener> = new Map()
   private broadcastChannel?: BroadcastChannel
   private storageHandler?: (e: StorageEvent) => void
+  private disposables: DisposableManager = new DisposableManager()
+  private debouncedRecordActivity: () => void
 
   constructor(config: SessionConfig = {}) {
     this.config = {
-      timeout: config.timeout || 30 * 60 * 1000, // 30分钟
+      timeout: config.timeout || AUTH_DEFAULTS.SESSION_TIMEOUT,
       monitorActivity: config.monitorActivity !== undefined ? config.monitorActivity : true,
       activityEvents: config.activityEvents || ['mousedown', 'keydown', 'scroll', 'touchstart'],
       enableTabSync: config.enableTabSync !== undefined ? config.enableTabSync : true,
-      syncKey: config.syncKey || 'auth-session-sync',
+      syncKey: config.syncKey || AUTH_DEFAULTS.SESSION_SYNC_KEY,
       checkOnVisibilityChange: config.checkOnVisibilityChange !== undefined
         ? config.checkOnVisibilityChange
         : true,
     }
+
+    // 创建防抖的活动记录函数
+    this.debouncedRecordActivity = debounce(
+      () => this.recordActivityInternal(),
+      AUTH_DEFAULTS.ACTIVITY_DEBOUNCE_DELAY,
+    )
 
     this.init()
   }
@@ -64,6 +75,10 @@ export class SessionManager {
     // 监听页面可见性变化
     if (this.config.checkOnVisibilityChange && typeof document !== 'undefined') {
       document.addEventListener('visibilitychange', this.handleVisibilityChange)
+      // 添加到资源管理器
+      this.disposables.add(() => {
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+      })
     }
   }
 
@@ -125,11 +140,17 @@ export class SessionManager {
 
     this.config.activityEvents.forEach((eventType) => {
       const handler = () => {
-        this.recordActivity()
+        // 使用防抖函数，避免频繁触发
+        this.debouncedRecordActivity()
       }
 
       window.addEventListener(eventType, handler, { passive: true })
       this.activityHandlers.set(eventType, handler)
+
+      // 添加到资源管理器
+      this.disposables.add(() => {
+        window.removeEventListener(eventType, handler)
+      })
     })
   }
 
@@ -138,19 +159,12 @@ export class SessionManager {
    * @private
    */
   private stopActivityMonitoring(): void {
-    if (typeof window === 'undefined') {
-      return
-    }
-
-    this.activityHandlers.forEach((handler, eventType) => {
-      window.removeEventListener(eventType, handler)
-    })
-
+    // 不需要手动清理，DisposableManager 会处理
     this.activityHandlers.clear()
   }
 
   /**
-   * 记录用户活动
+   * 记录用户活动（公共接口，使用防抖）
    *
    * @example
    * ```typescript
@@ -159,6 +173,14 @@ export class SessionManager {
    * ```
    */
   recordActivity(): void {
+    this.debouncedRecordActivity()
+  }
+
+  /**
+   * 记录用户活动的内部实现
+   * @private
+   */
+  private recordActivityInternal(): void {
     if (!this.active) {
       return
     }
@@ -220,6 +242,11 @@ export class SessionManager {
       this.broadcastChannel.onmessage = (event: MessageEvent<SessionSyncMessage>) => {
         this.handleSyncMessage(event.data)
       }
+
+      // 添加到资源管理器
+      this.disposables.add(() => {
+        this.broadcastChannel?.close()
+      })
     }
     // 降级使用 localStorage 事件
     else {
@@ -236,6 +263,13 @@ export class SessionManager {
       }
 
       window.addEventListener('storage', this.storageHandler)
+
+      // 添加到资源管理器
+      this.disposables.add(() => {
+        if (this.storageHandler && typeof window !== 'undefined') {
+          window.removeEventListener('storage', this.storageHandler)
+        }
+      })
     }
   }
 
@@ -465,19 +499,12 @@ export class SessionManager {
     this.stopSessionTimer()
     this.stopActivityMonitoring()
 
-    if (this.broadcastChannel) {
-      this.broadcastChannel.close()
-      this.broadcastChannel = undefined
-    }
+    // 使用 DisposableManager 统一清理所有资源
+    this.disposables.dispose()
 
-    if (this.storageHandler && typeof window !== 'undefined') {
-      window.removeEventListener('storage', this.storageHandler)
-      this.storageHandler = undefined
-    }
-
-    if (typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', this.handleVisibilityChange)
-    }
+    // 清空引用
+    this.broadcastChannel = undefined
+    this.storageHandler = undefined
 
     this.timeoutCallbacks.clear()
     this.activityCallbacks.clear()

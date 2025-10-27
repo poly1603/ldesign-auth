@@ -58,6 +58,9 @@ export type * from './types'
 // 导出核心 AuthManager
 export { AuthManager, createAuthManager } from './core/AuthManager'
 
+// 导出 AuthRegistry
+export { AuthRegistry } from './core/AuthRegistry'
+
 // ============================================================================
 // 模块导出
 // ============================================================================
@@ -81,10 +84,13 @@ export { AuthManager, createAuthManager } from './core/AuthManager'
 // 默认实例（延迟初始化）
 // ============================================================================
 
+import { AuthRegistry } from './core/AuthRegistry'
+
 /**
- * 获取默认认证管理器实例（懒初始化单例）
+ * 获取默认认证管理器实例（使用 AuthRegistry）
  *
  * @param httpClient - HTTP 客户端（可选，仅在首次调用时生效）
+ * @param cacheManager - 缓存管理器（可选，仅在首次调用时生效）
  * @returns 默认认证管理器实例
  *
  * @example
@@ -98,13 +104,16 @@ export { AuthManager, createAuthManager } from './core/AuthManager'
  * await auth.login({ username: 'user', password: 'pass' })
  * ```
  */
-let _defaultAuth: AuthManager | null = null
-
 export function getDefaultAuth(httpClient?: any, cacheManager?: any): AuthManager {
-  if (!_defaultAuth) {
-    _defaultAuth = createAuthManager({}, httpClient, cacheManager)
+  // 使用 AuthRegistry 管理默认实例
+  let instance = AuthRegistry.get('default')
+
+  if (!instance) {
+    instance = createAuthManager({}, httpClient, cacheManager)
+    AuthRegistry.register('default', instance)
   }
-  return _defaultAuth
+
+  return instance
 }
 
 /**
