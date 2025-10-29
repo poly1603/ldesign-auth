@@ -124,3 +124,35 @@ export const CLEANUP_INTERVALS = {
   EXPIRED_DATA: 10 * 60 * 1000, // 10分钟
 } as const
 
+/**
+ * 性能配置
+ */
+export const PERFORMANCE_CONFIG = {
+  /** 启用 Token 解析缓存 */
+  ENABLE_TOKEN_PARSE_CACHE: true,
+  /** 启用对象池 */
+  ENABLE_OBJECT_POOL: true,
+  /** 启用内存监控 */
+  ENABLE_MEMORY_MONITORING: false,
+  /** 使用微任务批处理 */
+  USE_MICROTASK_BATCHING: true,
+} as const
+
+/**
+ * 内存限制
+ */
+export const MEMORY_LIMITS = {
+  /** Token 解析缓存大小 */
+  TOKEN_PARSE_CACHE_SIZE: 100,
+  /** 对象池大小 */
+  OBJECT_POOL_SIZE: 50,
+  /** 内存监控间隔（毫秒） */
+  MEMORY_MONITOR_INTERVAL: 60000,
+  /** 每个事件最大监听器数 */
+  MAX_LISTENERS_PER_EVENT: 50,
+  /** 全局最大监听器数 */
+  MAX_GLOBAL_LISTENERS: 500,
+  /** Token 黑名单最大条目 */
+  TOKEN_BLACKLIST_MAX_SIZE: 10000,
+} as const
+
