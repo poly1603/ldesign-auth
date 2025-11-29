@@ -1,0 +1,110 @@
+{
+  "name": "@ldesign/auth-core",
+  "version": "0.1.0",
+  "description": "LDesign 认证系统核心模块 - 框架无关的认证管理、Token 管理、会话管理",
+  "keywords": [
+    "ldesign",
+    "auth",
+    "authentication",
+    "jwt",
+    "token",
+    "session",
+    "typescript",
+    "framework-agnostic"
+  ],
+  "author": "LDesign Team",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./es/index.d.ts",
+      "import": "./es/index.js",
+      "require": "./lib/index.cjs",
+      "default": "./es/index.js"
+    },
+    "./auth": {
+      "types": "./es/auth/index.d.ts",
+      "import": "./es/auth/index.js",
+      "require": "./lib/auth/index.cjs",
+      "default": "./es/auth/index.js"
+    },
+    "./auth/*": {
+      "types": "./es/auth/*.d.ts",
+      "import": "./es/auth/*.js",
+      "require": "./lib/auth/*.cjs",
+      "default": "./es/auth/*.js"
+    },
+    "./session": {
+      "types": "./es/session/index.d.ts",
+      "import": "./es/session/index.js",
+      "require": "./lib/session/index.cjs",
+      "default": "./es/session/index.js"
+    },
+    "./session/*": {
+      "types": "./es/session/*.d.ts",
+      "import": "./es/session/*.js",
+      "require": "./lib/session/*.cjs",
+      "default": "./es/session/*.js"
+    },
+    "./token": {
+      "types": "./es/token/index.d.ts",
+      "import": "./es/token/index.js",
+      "require": "./lib/token/index.cjs",
+      "default": "./es/token/index.js"
+    },
+    "./token/*": {
+      "types": "./es/token/*.d.ts",
+      "import": "./es/token/*.js",
+      "require": "./lib/token/*.cjs",
+      "default": "./es/token/*.js"
+    },
+    "./types": {
+      "types": "./es/types/index.d.ts",
+      "import": "./es/types/index.js",
+      "require": "./lib/types/index.cjs",
+      "default": "./es/types/index.js"
+    },
+    "./types/*": {
+      "types": "./es/types/*.d.ts",
+      "import": "./es/types/*.js",
+      "require": "./lib/types/*.cjs",
+      "default": "./es/types/*.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "main": "./lib/index.cjs",
+  "module": "./es/index.js",
+  "types": "./es/index.d.ts",
+  "unpkg": "./dist/index.js",
+  "jsdelivr": "./dist/index.js",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "es",
+    "lib",
+    "dist"
+  ],
+  "scripts": {
+    "build": "ldesign-builder build -f esm,cjs,dts",
+    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint . --fix",
+    "lint:check": "eslint .",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "clean": "rimraf es lib coverage"
+  },
+  "dependencies": {},
+  "peerDependencies": {},
+  "devDependencies": {
+    "@ldesign/builder": "workspace:*",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.18.0",
+    "typescript": "^5.7.3",
+    "vitest": "^3.2.4"
+  },
+  "typings": "./es/index.d.ts",
+  "browser": "./dist/index.js"
+}
