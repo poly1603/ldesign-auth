@@ -94,6 +94,8 @@ export class TokenManager {
   private storage: ITokenStorage
   /** Token 信息缓存 */
   private tokenInfo: TokenInfo | null = null
+  /** 缓存是否有效（脏标记） */
+  private cacheValid = false
 
   /**
    * 创建 Token 管理器实例
@@ -169,6 +171,11 @@ export class TokenManager {
         refreshToken: refreshToken ?? undefined,
         expiresAt: expiresAtStr ? Number.parseInt(expiresAtStr, 10) : undefined,
       }
+      this.cacheValid = true
+    }
+    else {
+      this.tokenInfo = null
+      this.cacheValid = false
     }
   }
 
@@ -183,20 +190,40 @@ export class TokenManager {
       ? Date.now() + token.expiresIn * 1000
       : undefined)
 
+    // 更新缓存
     this.tokenInfo = {
       ...token,
       expiresAt,
     }
+    this.cacheValid = true
 
-    // 保存到存储
-    this.storage.set(this.getKey(this.options.accessTokenKey), token.accessToken)
+    // 异步保存到存储（非阻塞）
+    queueMicrotask(() => {
+      this.saveToStorage(token, expiresAt)
+    })
+  }
 
-    if (token.refreshToken) {
-      this.storage.set(this.getKey(this.options.refreshTokenKey), token.refreshToken)
+  /**
+   * 保存 Token 到存储
+   *
+   * @param token - Token 信息
+   * @param expiresAt - 过期时间戳
+   */
+  private saveToStorage(token: TokenInfo, expiresAt?: number): void {
+    try {
+      this.storage.set(this.getKey(this.options.accessTokenKey), token.accessToken)
+
+      if (token.refreshToken) {
+        this.storage.set(this.getKey(this.options.refreshTokenKey), token.refreshToken)
+      }
+
+      if (expiresAt) {
+        this.storage.set(this.getKey('expires_at'), String(expiresAt))
+      }
     }
-
-    if (expiresAt) {
-      this.storage.set(this.getKey('expires_at'), String(expiresAt))
+    catch (error) {
+      // 存储失败时静默处理，不影响内存缓存
+      console.error('[TokenManager] Failed to save token to storage:', error)
     }
   }
 
@@ -206,6 +233,10 @@ export class TokenManager {
    * @returns 访问令牌，如果不存在则返回 null
    */
   getAccessToken(): string | null {
+    // 懒加载：缓存失效时从存储加载
+    if (!this.cacheValid) {
+      this.loadFromStorage()
+    }
     return this.tokenInfo?.accessToken ?? null
   }
 
@@ -215,6 +246,10 @@ export class TokenManager {
    * @returns 刷新令牌，如果不存在则返回 null
    */
   getRefreshToken(): string | null {
+    // 懒加载：缓存失效时从存储加载
+    if (!this.cacheValid) {
+      this.loadFromStorage()
+    }
     return this.tokenInfo?.refreshToken ?? null
   }
 
@@ -224,6 +259,10 @@ export class TokenManager {
    * @returns Token 信息，如果不存在则返回 null
    */
   getTokenInfo(): TokenInfo | null {
+    // 懒加载：缓存失效时从存储加载
+    if (!this.cacheValid) {
+      this.loadFromStorage()
+    }
     return this.tokenInfo
   }
 
@@ -233,6 +272,10 @@ export class TokenManager {
    * @returns 是否存在有效的访问令牌
    */
   hasToken(): boolean {
+    // 懒加载：缓存失效时从存储加载
+    if (!this.cacheValid) {
+      this.loadFromStorage()
+    }
     return !!this.tokenInfo?.accessToken
   }
 
@@ -270,7 +313,11 @@ export class TokenManager {
    * 清除 Token 信息
    */
   clearToken(): void {
+    // 清除缓存
     this.tokenInfo = null
+    this.cacheValid = false
+
+    // 清除存储
     this.storage.remove(this.getKey(this.options.accessTokenKey))
     this.storage.remove(this.getKey(this.options.refreshTokenKey))
     this.storage.remove(this.getKey('expires_at'))
@@ -280,7 +327,11 @@ export class TokenManager {
    * 清除所有存储的数据
    */
   clearAll(): void {
+    // 清除缓存
     this.tokenInfo = null
+    this.cacheValid = false
+
+    // 清除存储
     this.storage.clear()
   }
 

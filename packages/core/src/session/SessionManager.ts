@@ -62,9 +62,11 @@ export class SessionManager {
   /** 当前会话信息 */
   private session: SessionInfo | null = null
   /** 活动检测定时器 */
-  private activityTimer: ReturnType<typeof setInterval> | null = null
+  private activityTimer: number | null = null
   /** 会话过期回调 */
   private onExpiredCallbacks: Array<() => void> = []
+  /** 是否已销毁 */
+  private destroyed = false
 
   /**
    * 创建会话管理器实例
@@ -236,25 +238,40 @@ export class SessionManager {
 
   /**
    * 启动活动监控
+   * 使用 setTimeout 替代 setInterval，更容易控制和清理
    */
   private startActivityMonitor(): void {
+    if (this.destroyed || typeof window === 'undefined') return
+
     this.stopActivityMonitor()
 
-    if (typeof window === 'undefined') return
+    const checkActivity = () => {
+      // 检查是否已销毁
+      if (this.destroyed) return
 
-    this.activityTimer = setInterval(() => {
+      // 检查会话是否过期
       if (this.isSessionExpired()) {
         this.handleSessionExpired()
+        return
       }
-    }, this.options.activityCheckInterval)
+
+      // 继续下一次检查
+      this.activityTimer = window.setTimeout(
+        checkActivity,
+        this.options.activityCheckInterval
+      )
+    }
+
+    // 启动检查
+    checkActivity()
   }
 
   /**
    * 停止活动监控
    */
   private stopActivityMonitor(): void {
-    if (this.activityTimer) {
-      clearInterval(this.activityTimer)
+    if (this.activityTimer !== null) {
+      clearTimeout(this.activityTimer)
       this.activityTimer = null
     }
   }
@@ -321,8 +338,17 @@ export class SessionManager {
    * 销毁管理器，清理资源
    */
   destroy(): void {
+    // 标记为已销毁
+    this.destroyed = true
+
+    // 停止监控
     this.stopActivityMonitor()
+
+    // 清理回调
     this.onExpiredCallbacks = []
+
+    // 清理会话数据
+    this.session = null
   }
 }
 

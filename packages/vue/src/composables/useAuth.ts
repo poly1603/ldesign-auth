@@ -100,57 +100,79 @@ export function useAuth(): UseAuthReturn {
     )
   }
 
-  // 响应式状态
+  // 响应式状态 - 基础类型使用 ref，对象类型使用 shallowRef
   const isAuthenticated = ref(authManager.isAuthenticated())
   const isLoading = ref(false)
   const user = shallowRef<User | null>(authManager.getUser())
   const token = shallowRef<TokenInfo | null>(authManager.getTokenManager().getTokenInfo())
   const error = shallowRef<AuthError | null>(null)
 
-  // 更新状态的辅助函数
-  const updateState = (state: AuthState) => {
-    isAuthenticated.value = state.isAuthenticated
-    isLoading.value = state.isLoading
-    user.value = state.user
-    token.value = state.token
-    error.value = state.error
+  // 使用 computed 缓存派生状态，避免重复计算
+  const permissions = computed(() => user.value?.permissions ?? [])
+  const roles = computed(() => user.value?.roles ?? [])
+  const username = computed(() => user.value?.username ?? '')
+  const userId = computed(() => user.value?.id)
+  const userEmail = computed(() => user.value?.email)
+
+  // 更新状态的辅助函数 - 批量更新以减少渲染次数
+  const updateState = (state: Partial<AuthState>) => {
+    if (state.isAuthenticated !== undefined) {
+      isAuthenticated.value = state.isAuthenticated
+    }
+    if (state.isLoading !== undefined) {
+      isLoading.value = state.isLoading
+    }
+    if (state.user !== undefined) {
+      user.value = state.user
+    }
+    if (state.token !== undefined) {
+      token.value = state.token
+    }
+    if (state.error !== undefined) {
+      error.value = state.error
+    }
   }
 
   // 监听认证事件
   const unsubscribes: Array<() => void> = []
 
+  // 使用批量更新优化事件处理
   unsubscribes.push(
     authManager.on('login', (data) => {
-      isAuthenticated.value = true
-      user.value = data.user
-      token.value = data.token
-      error.value = null
+      updateState({
+        isAuthenticated: true,
+        user: data.user,
+        token: data.token,
+        error: null,
+      })
     }),
   )
 
   unsubscribes.push(
     authManager.on('logout', () => {
-      isAuthenticated.value = false
-      user.value = null
-      token.value = null
+      updateState({
+        isAuthenticated: false,
+        user: null,
+        token: null,
+      })
     }),
   )
 
   unsubscribes.push(
     authManager.on('user:updated', (updatedUser) => {
-      user.value = updatedUser
+      updateState({ user: updatedUser })
     }),
   )
 
   unsubscribes.push(
     authManager.on('token:refresh', (newToken) => {
-      token.value = newToken
+      updateState({ token: newToken })
     }),
   )
 
   unsubscribes.push(
     authManager.on('error', (authError) => {
-      error.value = authError
+      updateState({ error: authError })
     }),
   )
 
@@ -161,15 +183,14 @@ export function useAuth(): UseAuthReturn {
 
   // 登录
   const login = async (credentials: Credentials): Promise<LoginResult> => {
-    isLoading.value = true
-    error.value = null
+    updateState({ isLoading: true, error: null })
 
     try {
       const result = await authManager.login(credentials)
       return result
     }
     finally {
-      isLoading.value = false
+      updateState({ isLoading: false })
     }
   }
 
@@ -203,11 +224,19 @@ export function useAuth(): UseAuthReturn {
   }
 
   return {
+    // 响应式状态
     isAuthenticated: readonly(isAuthenticated),
     isLoading: readonly(isLoading),
     user: readonly(user),
     token: readonly(token),
     error: readonly(error),
+    // 派生状态（computed）
+    permissions: readonly(permissions),
+    roles: readonly(roles),
+    username: readonly(username),
+    userId: readonly(userId),
+    userEmail: readonly(userEmail),
+    // 方法
     login,
     logout,
     refreshUser,

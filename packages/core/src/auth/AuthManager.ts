@@ -23,6 +23,7 @@ import type {
 import { SessionStatus } from '../types'
 import { TokenManager } from '../token/TokenManager'
 import { SessionManager } from '../session/SessionManager'
+import { TokenRefreshQueue } from '../token/TokenRefreshQueue'
 
 /**
  * 登录结果接口
@@ -103,6 +104,8 @@ export class AuthManager {
   private tokenManager: TokenManager
   /** 会话管理器 */
   private sessionManager: SessionManager
+  /** Token 刷新队列 */
+  private refreshQueue: TokenRefreshQueue
   /** 当前用户 */
   private currentUser: User | null = null
   /** 加载状态 */
@@ -129,6 +132,7 @@ export class AuthManager {
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.tokenManager = new TokenManager(config.tokenStorage)
     this.sessionManager = new SessionManager()
+    this.refreshQueue = new TokenRefreshQueue()
 
     // 监听会话过期
     this.sessionManager.onExpired(() => {
@@ -285,7 +289,10 @@ export class AuthManager {
     }
 
     try {
-      const newToken = await this.refreshTokenHandler(refreshToken)
+      // 使用刷新队列防止并发重复请求
+      const newToken = await this.refreshQueue.refresh(async () => {
+        return await this.refreshTokenHandler!(refreshToken)
+      })
 
       if (newToken) {
         this.tokenManager.setToken(newToken)
@@ -503,6 +510,7 @@ export class AuthManager {
   destroy(): void {
     this.cancelTokenRefresh()
     this.sessionManager.destroy()
+    this.refreshQueue.destroy()
     this.eventListeners.clear()
   }
 }
