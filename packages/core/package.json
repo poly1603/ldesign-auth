@@ -35,6 +35,54 @@
       "require": "./lib/auth/*.cjs",
       "default": "./es/auth/*.js"
     },
+    "./errors": {
+      "types": "./es/errors/index.d.ts",
+      "import": "./es/errors/index.js",
+      "require": "./lib/errors/index.cjs",
+      "default": "./es/errors/index.js"
+    },
+    "./errors/*": {
+      "types": "./es/errors/*.d.ts",
+      "import": "./es/errors/*.js",
+      "require": "./lib/errors/*.cjs",
+      "default": "./es/errors/*.js"
+    },
+    "./events": {
+      "types": "./es/events/index.d.ts",
+      "import": "./es/events/index.js",
+      "require": "./lib/events/index.cjs",
+      "default": "./es/events/index.js"
+    },
+    "./events/*": {
+      "types": "./es/events/*.d.ts",
+      "import": "./es/events/*.js",
+      "require": "./lib/events/*.cjs",
+      "default": "./es/events/*.js"
+    },
+    "./logger": {
+      "types": "./es/logger/index.d.ts",
+      "import": "./es/logger/index.js",
+      "require": "./lib/logger/index.cjs",
+      "default": "./es/logger/index.js"
+    },
+    "./logger/*": {
+      "types": "./es/logger/*.d.ts",
+      "import": "./es/logger/*.js",
+      "require": "./lib/logger/*.cjs",
+      "default": "./es/logger/*.js"
+    },
+    "./middleware": {
+      "types": "./es/middleware/index.d.ts",
+      "import": "./es/middleware/index.js",
+      "require": "./lib/middleware/index.cjs",
+      "default": "./es/middleware/index.js"
+    },
+    "./middleware/*": {
+      "types": "./es/middleware/*.d.ts",
+      "import": "./es/middleware/*.js",
+      "require": "./lib/middleware/*.cjs",
+      "default": "./es/middleware/*.js"
+    },
     "./session": {
       "types": "./es/session/index.d.ts",
       "import": "./es/session/index.js",
@@ -46,6 +94,18 @@
       "import": "./es/session/*.js",
       "require": "./lib/session/*.cjs",
       "default": "./es/session/*.js"
+    },
+    "./storage": {
+      "types": "./es/storage/index.d.ts",
+      "import": "./es/storage/index.js",
+      "require": "./lib/storage/index.cjs",
+      "default": "./es/storage/index.js"
+    },
+    "./storage/*": {
+      "types": "./es/storage/*.d.ts",
+      "import": "./es/storage/*.js",
+      "require": "./lib/storage/*.cjs",
+      "default": "./es/storage/*.js"
     },
     "./token": {
       "types": "./es/token/index.d.ts",
@@ -76,8 +136,8 @@
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.js",
-  "jsdelivr": "./dist/index.js",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
@@ -87,14 +147,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
     "type-check": "tsc --noEmit",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "clean": "rimraf es lib coverage"
+    "clean": "rimraf es lib dist coverage"
   },
   "dependencies": {},
   "peerDependencies": {},

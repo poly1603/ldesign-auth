@@ -1,37 +1,17 @@
 /**
  * @ldesign/auth-vue 构建配置
  */
-
 import { defineConfig } from '@ldesign/builder'
 
 export default defineConfig({
-  // 入口文件
   input: 'src/index.ts',
-
-  // 输出配置
-  output: {
-    format: ['esm', 'cjs'],
-    esm: { dir: 'es' },
-    cjs: { dir: 'lib' },
-  },
-
-  // 是否生成类型声明
-  dts: true,
-
-  // 外部依赖
-  external: [
-    'vue',
-    'vue-router',
-    '@ldesign/auth-core',
+  output: [
+    { format: 'esm', dir: 'es', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'esm', dir: 'esm', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'cjs', dir: 'lib', preserveModules: true, preserveModulesRoot: 'src' },
+    { format: 'umd', dir: 'dist', name: 'LDesignAuthVue' },
   ],
-
-  // 清理输出目录
+  external: ['vue', '@ldesign/auth-core'],
+  dts: true,
   clean: true,
-
-  // 是否压缩
-  minify: false,
-
-  // 源码映射
-  sourcemap: false,
 })
-

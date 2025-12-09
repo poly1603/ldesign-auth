@@ -50,8 +50,8 @@
   "main": "./lib/index.cjs",
   "module": "./es/index.js",
   "types": "./es/index.d.ts",
-  "unpkg": "./dist/index.js",
-  "jsdelivr": "./dist/index.js",
+  "unpkg": "./dist/index.min.js",
+  "jsdelivr": "./dist/index.min.js",
   "files": [
     "README.md",
     "LICENSE",
@@ -61,14 +61,14 @@
     "dist"
   ],
   "scripts": {
-    "build": "ldesign-builder build -f esm,cjs,dts",
-    "dev": "ldesign-builder build -f esm,cjs,dts --watch",
+    "build": "ldesign-builder build",
+    "dev": "ldesign-builder build --watch",
     "type-check": "vue-tsc --noEmit",
     "lint": "eslint . --fix",
     "lint:check": "eslint .",
     "test": "vitest",
     "test:run": "vitest run",
-    "clean": "rimraf es lib coverage"
+    "clean": "rimraf es lib dist coverage"
   },
   "dependencies": {
     "@ldesign/auth-core": "workspace:*"
