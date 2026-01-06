@@ -13,7 +13,8 @@
 - 🎯 **TypeScript** - 完整的类型定义和类型推导
 - 🔌 **可扩展** - 中间件机制、事件系统、存储适配器
 - 🎨 **Vue 3 集成** - 开箱即用的 Composables 和插件
-- 🛡️ **类型安全** - 100% TypeScript 编写
+- 🛡️ **安全防护** - 密码强度检测、XSS 防护、CSRF Token、速率限制
+- 🛠️ **工具函数** - debounce、throttle、retry、deepClone 等
 - 📝 **完整文档** - 详细的 API 文档和使用示例
 
 ## 📦 安装
@@ -293,6 +294,167 @@ const cookieStorage = new CookieStorageAdapter('auth_', {
 cookieStorage.set('session', 'abc123', {
   expires: 7 * 24 * 60 * 60 * 1000, // 7 天
 })
+```
+
+## 🛡️ 安全模块
+
+### 密码强度检测
+
+```typescript
+import {
+  checkPasswordStrength,
+  validatePassword,
+  generateSecurePassword,
+} from '@ldesign/auth-core/security'
+
+// 检查密码强度
+const result = checkPasswordStrength('MyP@ssw0rd')
+console.log(result.strength) // 'strong'
+console.log(result.score) // 85
+
+// 验证密码是否符合要求
+const validation = validatePassword('test123', {
+  minLength: 8,
+  requireUppercase: true,
+  requireSpecial: true,
+})
+
+if (!validation.valid) {
+  console.log('密码不符合要求:', validation.errors)
+  console.log('建议:', validation.suggestions)
+}
+
+// 生成安全密码
+const password = generateSecurePassword(16, {
+  includeLowercase: true,
+  includeUppercase: true,
+  includeNumbers: true,
+  includeSpecial: true,
+})
+```
+
+### XSS 防护
+
+```typescript
+import { escapeHtml, sanitizeInput, validateInput } from '@ldesign/auth-core/security'
+
+// HTML 转义
+const safe = escapeHtml('<script>alert("XSS")</script>')
+// '&lt;script&gt;alert(&quot;XSS&quot;)&lt;/script&gt;'
+
+// 清理 HTML 输入
+const sanitized = sanitizeInput('<script>alert(1)</script><p>Hello</p>', {
+  allowedTags: ['p', 'b', 'i', 'a'],
+})
+// '<p>Hello</p>'
+
+// 验证输入安全性
+const check = validateInput(userInput)
+if (!check.valid) {
+  console.log('检测到威胁:', check.threats)
+}
+```
+
+### CSRF 保护
+
+```typescript
+import { CsrfManager } from '@ldesign/auth-core/security'
+
+const csrfManager = new CsrfManager({
+  tokenKey: 'csrf_token',
+  headerName: 'X-CSRF-Token',
+  tokenTTL: 3600000, // 1 小时
+})
+
+// 获取 Token
+const token = csrfManager.getToken()
+
+// 验证 Token
+if (csrfManager.validateToken(incomingToken)) {
+  // Token 有效
+}
+
+// 添加到请求头
+fetch('/api/data', {
+  headers: csrfManager.getHeaders(),
+})
+```
+
+### 速率限制
+
+```typescript
+import { RateLimiter, createLoginLimiter } from '@ldesign/auth-core/security'
+
+// 创建登录限制器
+const loginLimiter = createLoginLimiter({
+  maxRequests: 5, // 5 次尝试
+  windowMs: 15 * 60 * 1000, // 15 分钟
+})
+
+// 登录时检查
+const result = loginLimiter.hit(username)
+if (result.limited) {
+  throw new Error(`登录尝试次数过多，请 ${result.retryAfter}ms 后重试`)
+}
+```
+
+## 🛠️ 工具函数
+
+### 异步工具
+
+```typescript
+import { debounce, throttle, retry, sleep, timeout } from '@ldesign/auth-core/utils'
+
+// 防抖
+const debouncedSearch = debounce((query: string) => {
+  console.log('Searching:', query)
+}, 300)
+
+// 节流
+const throttledScroll = throttle(() => {
+  console.log('Scrolling...')
+}, 100)
+
+// 重试
+const result = await retry(
+  async () => {
+    const response = await fetch('/api/data')
+    if (!response.ok) throw new Error('Failed')
+    return response.json()
+  },
+  {
+    maxRetries: 3,
+    delay: 1000,
+    backoffMultiplier: 2,
+  }
+)
+
+// 超时
+const data = await timeout(fetch('/api/slow'), 5000, 'Request timed out')
+```
+
+### 对象工具
+
+```typescript
+import { deepClone, deepMerge, pick, omit, get, set } from '@ldesign/auth-core/utils'
+
+// 深拷贝
+const cloned = deepClone({ a: { b: 1 } })
+
+// 深合并
+const merged = deepMerge(
+  { a: 1, b: { c: 2 } },
+  { b: { d: 3 }, e: 4 }
+) // { a: 1, b: { c: 2, d: 3 }, e: 4 }
+
+// 选取/排除属性
+const user = { id: 1, name: 'John', password: 'secret' }
+const safeUser = pick(user, ['id', 'name']) // { id: 1, name: 'John' }
+const publicUser = omit(user, ['password']) // { id: 1, name: 'John' }
+
+// 嵌套属性访问
+const value = get(obj, 'a.b.c', 'default')
+set(obj, 'a.b.c', 'new value')
 ```
 
 ## 🎯 高级用法

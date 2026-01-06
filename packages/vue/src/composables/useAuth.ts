@@ -33,6 +33,16 @@ export interface UseAuthReturn {
   token: Readonly<ReturnType<typeof shallowRef<TokenInfo | null>>>
   /** 错误信息 */
   error: Readonly<ReturnType<typeof shallowRef<AuthError | null>>>
+  /** 用户权限列表 */
+  permissions: Readonly<ReturnType<typeof computed<string[]>>>
+  /** 用户角色列表 */
+  roles: Readonly<ReturnType<typeof computed<string[]>>>
+  /** 用户名 */
+  username: Readonly<ReturnType<typeof computed<string>>>
+  /** 用户 ID */
+  userId: Readonly<ReturnType<typeof computed<string | number | undefined>>>
+  /** 用户邮箱 */
+  userEmail: Readonly<ReturnType<typeof computed<string | undefined>>>
   /** 登录 */
   login: (credentials: Credentials) => Promise<LoginResult>
   /** 登出 */
