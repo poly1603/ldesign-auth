@@ -78,3 +78,5 @@ export function createAuthManager(config: AuthConfig = {}): AuthManager {
   return new AuthManager(config)
 }
 
+// Engine 插件
+export * from './engine'
